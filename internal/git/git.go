@@ -13,8 +13,6 @@ const (
 	readingCommitHashError = "error reading commit hash: %w"
 	getCommitHashError     = "error getting commit hash: %w"
 	urlParseError          = "error parsing url: %w"
-
-	clonePath = "/tmp" // TODO: Config
 )
 
 func CloneOrPullRepo(cmdExecutor cmdexecutor.CommandExecutor, repoUrl, pat, dirPath string) error {
@@ -53,13 +51,13 @@ func CloneOrPullRepo(cmdExecutor cmdexecutor.CommandExecutor, repoUrl, pat, dirP
 }
 
 func buildUrl(repoUrl, pat string) (string, error) {
-	if pat == "" {
-		return repoUrl, nil
-	}
-
 	parsedUrl, err := url.Parse(repoUrl)
 	if err != nil {
 		return "", fmt.Errorf(urlParseError, err)
+	}
+
+	if pat == "" {
+		return repoUrl, nil
 	}
 
 	return fmt.Sprintf("https://%s@%s%s", pat, parsedUrl.Host, parsedUrl.Path), nil
@@ -75,7 +73,7 @@ func isDifferentCommit(cmdExecutor cmdexecutor.CommandExecutor, dirPath string) 
 		return false, nil, fmt.Errorf(readingCommitHashError, err)
 	}
 
-	currentCommitHash, err := cmdExecutor.ExecuteCommand("git", "-C", clonePath, "rev-parse", "HEAD")
+	currentCommitHash, err := cmdExecutor.ExecuteCommand("git", "-C", dirPath, "rev-parse", "HEAD")
 	if err != nil {
 		return false, nil, fmt.Errorf(getCommitHashError, err)
 	}
