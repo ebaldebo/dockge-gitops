@@ -14,3 +14,9 @@ covtest:
 
 covhtml: covtest
 		@go tool cover -html=./bin/coverage.out
+
+up:
+		@docker compose -f ./docker-compose/docker-compose.yml -p dockgegitops up -d --build
+
+down:
+		@docker compose -p dockgegitops down

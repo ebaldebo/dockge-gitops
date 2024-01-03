@@ -32,13 +32,17 @@ func CloneOrPullRepo(cmdExecutor cmdexecutor.CommandExecutor, repoUrl, pat, dirP
 	}
 
 	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		fmt.Println("Attempting to clone repo...")
 		if _, err := cmdExecutor.ExecuteCommand("git", "clone", url, dirPath); err != nil {
 			return fmt.Errorf("error cloning repo: %w", err)
 		}
+		fmt.Println("Repo cloned")
 	} else if err == nil {
+		fmt.Println("Attempting to pull repo...")
 		if _, err := cmdExecutor.ExecuteCommand("git", "-C", dirPath, "pull", url); err != nil {
 			return fmt.Errorf("error pulling repo: %w", err)
 		}
+		fmt.Println("Repo pulled")
 	} else {
 		return fmt.Errorf("error checking if repo exists: %w", err)
 	}

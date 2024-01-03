@@ -8,6 +8,8 @@ RUN go build -v -o /go/bin/dockge-gitops ./cmd/main.go
 
 FROM alpine:3.19
 
+RUN apk update && apk add --no-cache git
+
 RUN addgroup -g 1337 dockge-gitops && \
     adduser -G dockge-gitops -D -H -u 1337 app
 

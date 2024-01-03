@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  dockge-gitops:
+    build: ../
+    container_name: dockge-gitops
+    restart: unless-stopped
+    environment:
+      - GITHUB_REPO_URL=<repo-url>
+     

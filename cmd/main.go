@@ -4,7 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	"time"
+
+	"github.com/ebaldebo/dockge-gitops/internal/cmdexecutor"
 	"github.com/ebaldebo/dockge-gitops/internal/env"
+	"github.com/ebaldebo/dockge-gitops/internal/git"
 )
 
 func main() {
@@ -14,12 +18,15 @@ func main() {
 	gitHubPAT, err := env.GetEnvVar(false, "GITHUB_PAT", "")
 	handleError(err)
 
-	pollingRate, err := env.GetEnvVar(false, "POLLING_RATE", "1m")
-	handleError(err)
+	// pollingRate, err := env.GetEnvVar(false, "POLLING_RATE", "1m")
+	// handleError(err)
 
-	fmt.Println(gitHubRepoUrl)
-	fmt.Println(gitHubPAT)
-	fmt.Println(pollingRate)
+	cmdExecutor := &cmdexecutor.DefaultCommandExecutor{}
+
+	gitErr := git.CloneOrPullRepo(cmdExecutor, gitHubRepoUrl, gitHubPAT, "/tmp/repo")
+	handleError(gitErr)
+
+	time.Sleep(10 * time.Minute)
 }
 
 func handleError(err error) {
