@@ -1,13 +1,14 @@
 package main
 
 import (
-	"time"
-
 	"github.com/ebaldebo/dockge-gitops/internal/app"
+	"github.com/ebaldebo/dockge-gitops/internal/app/config"
 )
 
 func main() {
-	app.Run()
-
-	time.Sleep(10 * time.Minute)
+	cfg, err := config.New()
+	if err != nil {
+		panic("Unable to load config: " + err.Error())
+	}
+	app.Run(cfg)
 }

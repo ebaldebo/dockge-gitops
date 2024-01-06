@@ -5,27 +5,24 @@ import (
 	"os"
 	"time"
 
+	"github.com/ebaldebo/dockge-gitops/internal/app/config"
 	"github.com/ebaldebo/dockge-gitops/internal/cmdexecutor"
-	"github.com/ebaldebo/dockge-gitops/internal/env"
 	"github.com/ebaldebo/dockge-gitops/internal/git"
+	"github.com/ebaldebo/dockge-gitops/internal/polling"
 )
 
-func Run() {
-	gitHubRepoUrl, err := env.GetEnvVar(true, "GITHUB_REPO_URL", "")
+func Run(cfg *config.Config) {
+	fmt.Println("Polling rate", cfg.PollingRate)
+	pollingRateDuration, err := polling.ParsePollingRate(cfg.PollingRate)
 	handleError(err)
-
-	gitHubPAT, err := env.GetEnvVar(false, "GITHUB_PAT", "")
-	handleError(err)
-
-	// pollingRate, err := env.GetEnvVar(false, "POLLING_RATE", "1m")
-	// handleError(err)
 
 	cmdExecutor := &cmdexecutor.DefaultCommandExecutor{}
+	ticker := time.NewTicker(pollingRateDuration)
 
-	gitErr := git.CloneOrPullRepo(cmdExecutor, gitHubRepoUrl, gitHubPAT, "/tmp/repo")
-	handleError(gitErr)
-
-	time.Sleep(10 * time.Minute)
+	for range ticker.C {
+		gitErr := git.CloneOrPullRepo(cmdExecutor, cfg.RepoUrl, cfg.Pat, "/tmp/repo")
+		handleError(gitErr)
+	}
 }
 
 func handleError(err error) {

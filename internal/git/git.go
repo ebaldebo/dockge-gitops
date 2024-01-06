@@ -4,53 +4,56 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path/filepath"
 
 	"github.com/ebaldebo/dockge-gitops/internal/cmdexecutor"
 )
 
 const (
-	readingCommitHashError = "error reading commit hash: %w"
-	getCommitHashError     = "error getting commit hash: %w"
-	urlParseError          = "error parsing url: %w"
+	urlParseError    = "error parsing url: %w"
+	gitFetchMsg      = "error fetching repo: %w"
+	getLocalHashMsg  = "error getting local commit hash: %w"
+	getRemoteHashMsg = "error getting remote commit hash: %w"
 )
 
 func CloneOrPullRepo(cmdExecutor cmdexecutor.CommandExecutor, repoUrl, pat, dirPath string) error {
-	isDifferent, currentCommitHash, err := isDifferentCommit(cmdExecutor, dirPath)
-	if err != nil {
-		return err
-	}
-
-	if !isDifferent {
-		fmt.Println("No updates")
-		return nil
-	}
-
 	url, err := buildUrl(repoUrl, pat)
 	if err != nil {
 		return err
 	}
 
 	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
-		fmt.Println("Attempting to clone repo...")
-		if _, err := cmdExecutor.ExecuteCommand("git", "clone", url, dirPath); err != nil {
-			return fmt.Errorf("error cloning repo: %w", err)
-		}
-		fmt.Println("Repo cloned")
+		return cloneRepo(cmdExecutor, url, dirPath)
 	} else if err == nil {
-		fmt.Println("Attempting to pull repo...")
-		if _, err := cmdExecutor.ExecuteCommand("git", "-C", dirPath, "pull", url); err != nil {
-			return fmt.Errorf("error pulling repo: %w", err)
+		shouldPull, err := remoteHasUpdate(cmdExecutor, dirPath)
+		if err != nil {
+			return fmt.Errorf("error checking if repo has update: %w", err)
 		}
-		fmt.Println("Repo pulled")
+		if !shouldPull {
+			fmt.Println("Repo is up to date")
+			return nil
+		}
+
+		return pullRepo(cmdExecutor, url, dirPath)
 	} else {
 		return fmt.Errorf("error checking if repo exists: %w", err)
 	}
+}
 
-	if currentCommitHash != nil {
-		return saveCommitHash(currentCommitHash, dirPath)
+func cloneRepo(cmdExecutor cmdexecutor.CommandExecutor, url, dirPath string) error {
+	fmt.Println("Repo does not exist, cloning...")
+	if _, err := cmdExecutor.ExecuteCommand("git", "clone", url, dirPath); err != nil {
+		return fmt.Errorf("error cloning repo: %w", err)
 	}
+	fmt.Println("Repo cloned")
+	return nil
+}
 
+func pullRepo(cmdExecutor cmdexecutor.CommandExecutor, url, dirPath string) error {
+	fmt.Println("Repo is not up to date, pulling...")
+	if _, err := cmdExecutor.ExecuteCommand("git", "-C", dirPath, "pull", url); err != nil {
+		return fmt.Errorf("error pulling repo: %w", err)
+	}
+	fmt.Println("Repo pulled")
 	return nil
 }
 
@@ -67,29 +70,21 @@ func buildUrl(repoUrl, pat string) (string, error) {
 	return fmt.Sprintf("https://%s@%s%s", pat, parsedUrl.Host, parsedUrl.Path), nil
 }
 
-func isDifferentCommit(cmdExecutor cmdexecutor.CommandExecutor, dirPath string) (bool, []byte, error) {
-	filePath := filepath.Join(dirPath, ".commit")
-	savedCommitHash, err := os.ReadFile(filePath)
+func remoteHasUpdate(cmdExecutor cmdexecutor.CommandExecutor, dirpath string) (bool, error) {
+	_, err := cmdExecutor.ExecuteCommand("git", "-C", dirpath, "fetch")
 	if err != nil {
-		if os.IsNotExist(err) {
-			return true, nil, nil
-		}
-		return false, nil, fmt.Errorf(readingCommitHashError, err)
+		return false, fmt.Errorf(gitFetchMsg, err)
 	}
 
-	currentCommitHash, err := cmdExecutor.ExecuteCommand("git", "-C", dirPath, "rev-parse", "HEAD")
+	localCommitHash, err := cmdExecutor.ExecuteCommand("git", "-C", dirpath, "rev-parse", "HEAD")
 	if err != nil {
-		return false, nil, fmt.Errorf(getCommitHashError, err)
+		return false, fmt.Errorf(getLocalHashMsg, err)
 	}
 
-	return string(savedCommitHash) != string(currentCommitHash), currentCommitHash, nil
-}
-
-func saveCommitHash(commitHash []byte, dirPath string) error {
-	filePath := filepath.Join(dirPath, ".commit")
-	if err := os.WriteFile(filePath, commitHash, 0644); err != nil {
-		return err
+	remoteCommitHash, err := cmdExecutor.ExecuteCommand("git", "-C", dirpath, "rev-parse", "origin/main")
+	if err != nil {
+		return false, fmt.Errorf(getRemoteHashMsg, err)
 	}
 
-	return nil
+	return string(localCommitHash) != string(remoteCommitHash), nil
 }

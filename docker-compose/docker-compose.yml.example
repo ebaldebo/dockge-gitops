@@ -6,5 +6,6 @@ services:
     container_name: dockge-gitops
     restart: unless-stopped
     environment:
-      - GITHUB_REPO_URL=<repo-url>
-     
+      - REPO_URL=<repo-url>
+      - PAT=<pat-for-private-repo>
+      - POLLING_RATE=1m
