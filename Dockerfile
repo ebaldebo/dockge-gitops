@@ -10,14 +10,7 @@ FROM alpine:3.19
 
 RUN apk update && apk add --no-cache git
 
-RUN addgroup -g 1337 dockge-gitops && \
-    adduser -G dockge-gitops -D -H -u 1337 app
-
 COPY --from=builder /go/bin/dockge-gitops /app/cmd/
-
-RUN chown -R app:dockge-gitops /app
-
-USER 1337
 
 WORKDIR /app/cmd
 

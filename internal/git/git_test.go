@@ -48,20 +48,23 @@ func TestCloneOrPullRepo(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("should clone repo if dir does not exist", func(t *testing.T) {
+	t.Run("should clone repo if .git file does not exist", func(t *testing.T) {
 		cmdExecutorMock := &cmdexecutor.CommandExecutorMock{
 			ExecuteCommandFunc: func(name string, args ...string) ([]byte, error) {
 				return nil, nil
 			},
 		}
 
-		err := CloneOrPullRepo(cmdExecutorMock, "https://example.com", "", "/asdf")
+		tempDir, _ := os.MkdirTemp("", "test")
+		defer os.RemoveAll(tempDir)
+
+		err := CloneOrPullRepo(cmdExecutorMock, "https://example.com", "", tempDir)
 
 		assert.NoError(t, err)
 		assert.Equal(t, "clone", cmdExecutorMock.ExecuteCommandCalls()[0].Args[0])
 	})
 
-	t.Run("should pull repo if dir exists", func(t *testing.T) {
+	t.Run("should pull repo if .git dir exists", func(t *testing.T) {
 		cmdExecutorMock := &cmdexecutor.CommandExecutorMock{
 			ExecuteCommandFunc: func(name string, args ...string) ([]byte, error) {
 				for _, arg := range args {
@@ -77,6 +80,7 @@ func TestCloneOrPullRepo(t *testing.T) {
 		}
 
 		tempDir, _ := os.MkdirTemp("", "test")
+		os.Mkdir(tempDir+"/.git", 0755)
 		defer os.RemoveAll(tempDir)
 
 		err := CloneOrPullRepo(cmdExecutorMock, "https://example.com", "", tempDir)
@@ -104,6 +108,7 @@ func TestCloneOrPullRepo(t *testing.T) {
 		}
 
 		tempDir, _ := os.MkdirTemp("", "test")
+		os.Mkdir(tempDir+"/.git", 0755)
 		defer os.RemoveAll(tempDir)
 
 		err := CloneOrPullRepo(cmdExecutorMock, "https://example.com", "", tempDir)

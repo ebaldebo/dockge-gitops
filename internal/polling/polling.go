@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	invalidUnitMsg = "invalid unit: %s"
+	invalidUnitMsg = "invalid polling rate unit: %s"
 )
 
 func ParsePollingRate(interval string) (time.Duration, error) {

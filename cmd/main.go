@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/ebaldebo/dockge-gitops/internal/app"
 	"github.com/ebaldebo/dockge-gitops/internal/app/config"
 )
@@ -8,7 +11,7 @@ import (
 func main() {
 	cfg, err := config.New()
 	if err != nil {
-		panic("Unable to load config: " + err.Error())
+		fmt.Fprintf(os.Stderr, "error getting config: %v\n", err)
 	}
 	app.Run(cfg)
 }

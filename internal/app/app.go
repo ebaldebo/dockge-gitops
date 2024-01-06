@@ -12,22 +12,25 @@ import (
 )
 
 func Run(cfg *config.Config) {
-	fmt.Println("Polling rate", cfg.PollingRate)
 	pollingRateDuration, err := polling.ParsePollingRate(cfg.PollingRate)
 	handleError(err)
 
 	cmdExecutor := &cmdexecutor.DefaultCommandExecutor{}
 	ticker := time.NewTicker(pollingRateDuration)
+	defer ticker.Stop()
+
+	gitErr := git.CloneOrPullRepo(cmdExecutor, cfg.RepoUrl, cfg.Pat, cfg.DockgeStacksDir)
+	handleError(gitErr)
 
 	for range ticker.C {
-		gitErr := git.CloneOrPullRepo(cmdExecutor, cfg.RepoUrl, cfg.Pat, "/tmp/repo")
+		gitErr := git.CloneOrPullRepo(cmdExecutor, cfg.RepoUrl, cfg.Pat, cfg.DockgeStacksDir)
 		handleError(gitErr)
 	}
 }
 
 func handleError(err error) {
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 }

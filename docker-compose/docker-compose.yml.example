@@ -8,4 +8,7 @@ services:
     environment:
       - REPO_URL=<repo-url>
       - PAT=<pat-for-private-repo>
-      - POLLING_RATE=1m
+      - POLLING_RATE=30s
+      - DOCKGE_STACKS_DIR=/opt/stacks
+    volumes:
+      - /opt/stacks:/opt/stacks
