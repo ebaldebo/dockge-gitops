@@ -12,3 +12,16 @@ services:
       - DOCKGE_STACKS_DIR=/opt/stacks
     volumes:
       - /opt/stacks:/opt/stacks
+
+  dockge:
+    image: louislam/dockge:1
+    container_name: dockge
+    restart: unless-stopped
+    ports:
+      - 5001:5001
+    environment:
+      - DOCKGE_STACKS_DIR=/opt/stacks
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .data:/app/data
+      - /opt/stacks:/opt/stacks

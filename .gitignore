@@ -24,4 +24,4 @@ go.work
 /bin
 
 # docker-compose for local development
-/docker-compose/docker-compose.yml
+/docker/compose.yml
