@@ -32,7 +32,7 @@ func New() (*Config, error) {
 		return nil, err
 	}
 
-	dockgeStacksDir, err := env.GetEnvVar(true, dockgeStacksDirEnv, "")
+	dockgeStacksDir, err := env.GetEnvVar(false, dockgeStacksDirEnv, "/opt/stacks")
 	if err != nil {
 		return nil, err
 	}
