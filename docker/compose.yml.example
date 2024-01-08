@@ -14,6 +14,7 @@ services:
       - DOCKGE_STACKS_DIR=/opt/stacks
     volumes:
       - /opt/stacks:/opt/stacks
+      - /opt/env:/env
 
   dockge:
     image: louislam/dockge:1

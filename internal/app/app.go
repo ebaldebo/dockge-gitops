@@ -11,6 +11,10 @@ import (
 	"github.com/ebaldebo/dockge-gitops/internal/polling"
 )
 
+const (
+	repoDir = "/tmp/repo"
+)
+
 func Run(cfg *config.Config) {
 	pollingRateDuration, err := polling.ParsePollingRate(cfg.PollingRate)
 	handleError(err)
@@ -19,11 +23,11 @@ func Run(cfg *config.Config) {
 	ticker := time.NewTicker(pollingRateDuration)
 	defer ticker.Stop()
 
-	gitErr := git.CloneOrPullRepo(cmdExecutor, cfg.RepoUrl, cfg.Pat, cfg.DockgeStacksDir)
+	gitErr := git.CloneOrPullRepo(cmdExecutor, cfg.RepoUrl, cfg.Pat, repoDir, cfg.DockgeStacksDir)
 	handleError(gitErr)
 
 	for range ticker.C {
-		gitErr := git.CloneOrPullRepo(cmdExecutor, cfg.RepoUrl, cfg.Pat, cfg.DockgeStacksDir)
+		gitErr := git.CloneOrPullRepo(cmdExecutor, cfg.RepoUrl, cfg.Pat, repoDir, cfg.DockgeStacksDir)
 		handleError(gitErr)
 	}
 }

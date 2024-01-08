@@ -4,37 +4,19 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 
 	"github.com/ebaldebo/dockge-gitops/internal/cmdexecutor"
 )
 
-const (
-	repoUpToDateMsg         = "Repo is up to date"
-	repoNotExistsCloningMsg = "Repo does not exist, cloning..."
-	repoClonedMsg           = "Repo cloned"
-	repoNotUpToDateMsg      = "Repo is not up to date, pulling..."
-	repoPulledMsg           = "Repo pulled"
-
-	urlParseErr                = "error parsing url: %w"
-	gitFetchErr                = "error fetching repo: %w"
-	getLocalHashErr            = "error getting local commit hash: %w"
-	getRemoteHashErr           = "error getting remote commit hash: %w"
-	checkingIfRepoHasUpdateErr = "error checking if repo has update: %w"
-	checkingIfRepoExistsErr    = "error checking if repo exists: %w"
-	cloningRepoErr             = "error cloning repo: %w"
-	pullingRepoErr             = "error pulling repo: %w"
-	readingDirErr              = "error reading dir: %w"
-	cloneDirNotEmptyErr        = "error cloning into dir, dir is not empty: %w"
-)
-
-func CloneOrPullRepo(cmdExecutor cmdexecutor.CommandExecutor, repoUrl, pat, dirPath string) error {
+func CloneOrPullRepo(cmdExecutor cmdexecutor.CommandExecutor, repoUrl, pat, dirPath, stackPath string) error {
 	url, err := buildUrl(repoUrl, pat)
 	if err != nil {
 		return err
 	}
 
 	if _, err := os.Stat(dirPath + "/.git"); os.IsNotExist(err) {
-		return cloneRepo(cmdExecutor, url, dirPath)
+		return cloneRepo(cmdExecutor, url, dirPath, stackPath)
 	} else if err == nil {
 		shouldPull, err := remoteHasUpdate(cmdExecutor, dirPath)
 		if err != nil {
@@ -45,13 +27,13 @@ func CloneOrPullRepo(cmdExecutor cmdexecutor.CommandExecutor, repoUrl, pat, dirP
 			return nil
 		}
 
-		return pullRepo(cmdExecutor, url, dirPath)
+		return pullRepo(cmdExecutor, url, dirPath, stackPath)
 	} else {
 		return fmt.Errorf(checkingIfRepoExistsErr, err)
 	}
 }
 
-func cloneRepo(cmdExecutor cmdexecutor.CommandExecutor, url, dirPath string) error {
+func cloneRepo(cmdExecutor cmdexecutor.CommandExecutor, url, dirPath, stackPath string) error {
 	files, err := os.ReadDir(dirPath)
 	if err != nil {
 		return fmt.Errorf(readingDirErr, err)
@@ -66,15 +48,25 @@ func cloneRepo(cmdExecutor cmdexecutor.CommandExecutor, url, dirPath string) err
 		return fmt.Errorf(cloningRepoErr, err)
 	}
 	fmt.Println(repoClonedMsg)
+
+	if err := copyFilesToDir(cmdExecutor, dirPath, stackPath); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func pullRepo(cmdExecutor cmdexecutor.CommandExecutor, url, dirPath string) error {
+func pullRepo(cmdExecutor cmdexecutor.CommandExecutor, url, dirPath, stackPath string) error {
 	fmt.Println(repoNotUpToDateMsg)
 	if _, err := cmdExecutor.ExecuteCommand("git", "-C", dirPath, "pull", url); err != nil {
 		return fmt.Errorf(pullingRepoErr, err)
 	}
 	fmt.Println(repoPulledMsg)
+
+	if err := copyFilesToDir(cmdExecutor, dirPath, stackPath); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -108,4 +100,42 @@ func remoteHasUpdate(cmdExecutor cmdexecutor.CommandExecutor, dirpath string) (b
 	}
 
 	return string(localCommitHash) != string(remoteCommitHash), nil
+}
+
+func copyFilesToDir(cmdExecutor cmdexecutor.CommandExecutor, dirPath, newDirPath string) error {
+	fmt.Println(copyingFilesMsg)
+
+	files, err := filepath.Glob(newDirPath + "/*")
+	if err != nil {
+		return fmt.Errorf(gettingFilesFromDestinationErr, err)
+	}
+
+	args := append([]string{"rm", "-rfv"}, files...)
+
+	_, err = cmdExecutor.ExecuteCommand(args[0], args[1:]...)
+	if err != nil {
+		return fmt.Errorf(removingFilesFromDestinationErr, err)
+	}
+
+	subDirs, err := filepath.Glob(dirPath + "/*")
+	if err != nil {
+		return fmt.Errorf(gettingSubDirsError, err)
+	}
+	for _, subDir := range subDirs {
+		subDirName := filepath.Base(subDir)
+		if subDirName == ".git" {
+			continue
+		}
+		if _, err := cmdExecutor.ExecuteCommand("cp", "-r", subDir, newDirPath+"/"); err != nil {
+			return fmt.Errorf(copyingSubfoldersErr, err)
+		}
+		if _, err := os.Stat("/env/.env"); err == nil {
+			if _, err := cmdExecutor.ExecuteCommand("cp", "/env/.env", newDirPath+"/"+subDirName+"/"); err != nil {
+				return fmt.Errorf(copyingEnvFileErr, err)
+			}
+		}
+	}
+
+	fmt.Println(filesCopiedMsg)
+	return nil
 }

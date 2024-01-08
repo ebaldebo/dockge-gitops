@@ -43,7 +43,7 @@ func TestCloneOrPullRepo(t *testing.T) {
 		tempDir, _ := os.MkdirTemp("", "test")
 		defer os.RemoveAll(tempDir)
 
-		err := CloneOrPullRepo(nil, "://example.com", "", tempDir)
+		err := CloneOrPullRepo(nil, "://example.com", "", tempDir, "")
 
 		assert.Error(t, err)
 	})
@@ -58,7 +58,7 @@ func TestCloneOrPullRepo(t *testing.T) {
 		tempDir, _ := os.MkdirTemp("", "test")
 		defer os.RemoveAll(tempDir)
 
-		err := CloneOrPullRepo(cmdExecutorMock, "https://example.com", "", tempDir)
+		err := CloneOrPullRepo(cmdExecutorMock, "https://example.com", "", tempDir, "")
 
 		assert.NoError(t, err)
 		assert.Equal(t, "clone", cmdExecutorMock.ExecuteCommandCalls()[0].Args[0])
@@ -83,13 +83,12 @@ func TestCloneOrPullRepo(t *testing.T) {
 		os.Mkdir(tempDir+"/.git", 0755)
 		defer os.RemoveAll(tempDir)
 
-		err := CloneOrPullRepo(cmdExecutorMock, "https://example.com", "", tempDir)
+		err := CloneOrPullRepo(cmdExecutorMock, "https://example.com", "", tempDir, "")
 
 		executeCommandCalls := cmdExecutorMock.ExecuteCommandCalls()
 
 		assert.NoError(t, err)
-		assert.Equal(t, 4, len(cmdExecutorMock.ExecuteCommandCalls()))
-		assert.Equal(t, "pull", executeCommandCalls[len(executeCommandCalls)-1].Args[2])
+		assert.Equal(t, "pull", executeCommandCalls[3].Args[2])
 	})
 
 	t.Run("should not pull if repo has no updates", func(t *testing.T) {
@@ -111,7 +110,7 @@ func TestCloneOrPullRepo(t *testing.T) {
 		os.Mkdir(tempDir+"/.git", 0755)
 		defer os.RemoveAll(tempDir)
 
-		err := CloneOrPullRepo(cmdExecutorMock, "https://example.com", "", tempDir)
+		err := CloneOrPullRepo(cmdExecutorMock, "https://example.com", "", tempDir, "")
 
 		executeCommandCalls := cmdExecutorMock.ExecuteCommandCalls()
 
@@ -132,7 +131,7 @@ func TestCloneOrPullRepo(t *testing.T) {
 		tempDir, _ := os.MkdirTemp("", "test")
 		defer os.RemoveAll(tempDir)
 
-		err := CloneOrPullRepo(cmdExecutorMock, "https://example.com", "", tempDir)
+		err := CloneOrPullRepo(cmdExecutorMock, "https://example.com", "", tempDir, "")
 
 		assert.Error(t, err)
 	})
