@@ -34,12 +34,18 @@ func CloneOrPullRepo(cmdExecutor cmdexecutor.CommandExecutor, repoUrl, pat, dirP
 	}
 }
 
-// TODO: Clear repo folder on error
 func ClearRepoFolder(cmdExecutor cmdexecutor.CommandExecutor, dirPath string) error {
-	_, err := cmdExecutor.ExecuteCommand("rm", "-rf", dirPath+"/*")
+	files, err := filepath.Glob(dirPath + "/*")
 	if err != nil {
-		return fmt.Errorf(clearingRepoFolderErr, err)
+		return fmt.Errorf(gettingFilesFromRepoDirErr, err)
 	}
+
+	for _, file := range files {
+		if err := os.RemoveAll(file); err != nil {
+			return fmt.Errorf(removingFileErr, file, err)
+		}
+	}
+
 	return nil
 }
 

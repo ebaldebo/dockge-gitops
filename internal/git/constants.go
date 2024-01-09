@@ -27,6 +27,8 @@ const (
 	writingDgoFileErr               = "error writing .dgo file: %w"
 	conflictingStackErr             = "error conflicting stack: %s not managed by dockge-gitops: %w"
 	clearingRepoFolderErr           = "error clearing repo folder: %w"
+	gettingFilesFromRepoDirErr      = "error getting files from repo dir: %w"
+	removingFileErr                 = "error removing file: %s, %w"
 
 	envFilePath = "/env/.env"
 
