@@ -21,3 +21,11 @@ func GetEnvVar(required bool, key, fallback string) (string, error) {
 
 	return value, nil
 }
+
+func EnvFileExists(envFilePath string) bool {
+	if _, err := os.Stat(envFilePath); err == nil {
+		return true
+	}
+
+	return false
+}

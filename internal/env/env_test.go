@@ -46,3 +46,25 @@ func Test_GetEnvVar(t *testing.T) {
 		assert.Equal(t, value, result)
 	})
 }
+
+func Test_EnvFileExists(t *testing.T) {
+	t.Run("should return true if file exists", func(t *testing.T) {
+		testDir, _ := os.MkdirTemp("", "test")
+		defer os.RemoveAll(testDir)
+
+		os.Create(testDir + "/.env")
+
+		result := EnvFileExists(testDir + "/.env")
+
+		assert.True(t, result)
+	})
+
+	t.Run("should return false if file does not exist", func(t *testing.T) {
+		testDir, _ := os.MkdirTemp("", "test")
+		defer os.RemoveAll(testDir)
+
+		result := EnvFileExists(testDir + "/.env")
+
+		assert.False(t, result)
+	})
+}

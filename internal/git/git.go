@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/ebaldebo/dockge-gitops/internal/cmdexecutor"
+	"github.com/ebaldebo/dockge-gitops/internal/env"
 )
 
 func CloneOrPullRepo(cmdExecutor cmdexecutor.CommandExecutor, repoUrl, pat, dirPath, stackPath string) error {
@@ -104,7 +105,36 @@ func remoteHasUpdate(cmdExecutor cmdexecutor.CommandExecutor, dirpath string) (b
 
 func copyFilesToDir(cmdExecutor cmdexecutor.CommandExecutor, dirPath, newDirPath string) error {
 	fmt.Println(copyingFilesMsg)
+	clearDestination(cmdExecutor, newDirPath)
 
+	items, err := os.ReadDir(dirPath)
+	if err != nil {
+		return fmt.Errorf(gettingSubDirsError, err)
+	}
+
+	for _, item := range items {
+		if !item.Type().IsDir() || item.Name() == ".git" {
+			continue
+		}
+		sourcePath := filepath.Join(dirPath, item.Name())
+		destPath := filepath.Join(newDirPath, item.Name())
+
+		if _, err := cmdExecutor.ExecuteCommand("cp", "-r", sourcePath, destPath); err != nil {
+			return fmt.Errorf(copyingSubfoldersErr, err)
+		}
+
+		if env.EnvFileExists(envFilePath) {
+			if _, err := cmdExecutor.ExecuteCommand("cp", envFilePath, destPath+"/"); err != nil {
+				return fmt.Errorf(copyingEnvFileErr, err)
+			}
+		}
+	}
+
+	fmt.Println(filesCopiedMsg)
+	return nil
+}
+
+func clearDestination(cmdExecutor cmdexecutor.CommandExecutor, newDirPath string) error {
 	files, err := filepath.Glob(newDirPath + "/*")
 	if err != nil {
 		return fmt.Errorf(gettingFilesFromDestinationErr, err)
@@ -117,25 +147,5 @@ func copyFilesToDir(cmdExecutor cmdexecutor.CommandExecutor, dirPath, newDirPath
 		return fmt.Errorf(removingFilesFromDestinationErr, err)
 	}
 
-	subDirs, err := filepath.Glob(dirPath + "/*")
-	if err != nil {
-		return fmt.Errorf(gettingSubDirsError, err)
-	}
-	for _, subDir := range subDirs {
-		subDirName := filepath.Base(subDir)
-		if subDirName == ".git" {
-			continue
-		}
-		if _, err := cmdExecutor.ExecuteCommand("cp", "-r", subDir, newDirPath+"/"); err != nil {
-			return fmt.Errorf(copyingSubfoldersErr, err)
-		}
-		if _, err := os.Stat("/env/.env"); err == nil {
-			if _, err := cmdExecutor.ExecuteCommand("cp", "/env/.env", newDirPath+"/"+subDirName+"/"); err != nil {
-				return fmt.Errorf(copyingEnvFileErr, err)
-			}
-		}
-	}
-
-	fmt.Println(filesCopiedMsg)
 	return nil
 }

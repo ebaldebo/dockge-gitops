@@ -24,4 +24,6 @@ const (
 	copyingEnvFileErr               = "error copying .env file to desination dir: %w"
 	copyingSubfoldersErr            = "error copying subfolders to desination dir: %w"
 	gettingSubDirsError             = "error getting subdirs: %w"
+
+	envFilePath = "/env/.env"
 )
