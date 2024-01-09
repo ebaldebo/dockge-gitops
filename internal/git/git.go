@@ -34,6 +34,15 @@ func CloneOrPullRepo(cmdExecutor cmdexecutor.CommandExecutor, repoUrl, pat, dirP
 	}
 }
 
+// TODO: Clear repo folder on error
+func ClearRepoFolder(cmdExecutor cmdexecutor.CommandExecutor, dirPath string) error {
+	_, err := cmdExecutor.ExecuteCommand("rm", "-rf", dirPath+"/*")
+	if err != nil {
+		return fmt.Errorf(clearingRepoFolderErr, err)
+	}
+	return nil
+}
+
 func cloneRepo(cmdExecutor cmdexecutor.CommandExecutor, url, dirPath, stackPath string) error {
 	files, err := os.ReadDir(dirPath)
 	if err != nil {
@@ -109,7 +118,7 @@ func copyFilesToDir(cmdExecutor cmdexecutor.CommandExecutor, dirPath, newDirPath
 
 	items, err := os.ReadDir(dirPath)
 	if err != nil {
-		return fmt.Errorf(gettingSubDirsError, err)
+		return fmt.Errorf(gettingSubDirsErr, err)
 	}
 
 	for _, item := range items {
@@ -118,9 +127,21 @@ func copyFilesToDir(cmdExecutor cmdexecutor.CommandExecutor, dirPath, newDirPath
 		}
 		sourcePath := filepath.Join(dirPath, item.Name())
 		destPath := filepath.Join(newDirPath, item.Name())
+		dgoFilePath := filepath.Join(destPath, dgoFileName)
+
+		destInfo, err := os.Stat(destPath)
+		if err == nil && destInfo.IsDir() {
+			if _, err := os.Stat(dgoFilePath); os.IsNotExist(err) {
+				return fmt.Errorf(conflictingStackErr, item.Name(), err)
+			}
+		}
 
 		if _, err := cmdExecutor.ExecuteCommand("cp", "-r", sourcePath, destPath); err != nil {
 			return fmt.Errorf(copyingSubfoldersErr, err)
+		}
+
+		if err := os.WriteFile(dgoFilePath, []byte(dgoContent), 0644); err != nil {
+			return fmt.Errorf(writingDgoFileErr, err)
 		}
 
 		if env.EnvFileExists(envFilePath) {
@@ -135,16 +156,18 @@ func copyFilesToDir(cmdExecutor cmdexecutor.CommandExecutor, dirPath, newDirPath
 }
 
 func clearDestination(cmdExecutor cmdexecutor.CommandExecutor, newDirPath string) error {
-	files, err := filepath.Glob(newDirPath + "/*")
+	dirs, err := filepath.Glob(newDirPath + "/*")
 	if err != nil {
 		return fmt.Errorf(gettingFilesFromDestinationErr, err)
 	}
 
-	args := append([]string{"rm", "-rfv"}, files...)
-
-	_, err = cmdExecutor.ExecuteCommand(args[0], args[1:]...)
-	if err != nil {
-		return fmt.Errorf(removingFilesFromDestinationErr, err)
+	for _, dir := range dirs {
+		dgoFilePath := filepath.Join(dir, dgoFileName)
+		if _, err := os.Stat(dgoFilePath); err == nil {
+			if _, err := cmdExecutor.ExecuteCommand("rm", "-rf", dir); err != nil {
+				return fmt.Errorf(removingFilesFromDestinationErr, err)
+			}
+		}
 	}
 
 	return nil

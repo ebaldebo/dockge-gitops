@@ -23,7 +23,13 @@ const (
 	removingFilesFromDestinationErr = "error removing files from destination: %w"
 	copyingEnvFileErr               = "error copying .env file to desination dir: %w"
 	copyingSubfoldersErr            = "error copying subfolders to desination dir: %w"
-	gettingSubDirsError             = "error getting subdirs: %w"
+	gettingSubDirsErr               = "error getting subdirs: %w"
+	writingDgoFileErr               = "error writing .dgo file: %w"
+	conflictingStackErr             = "error conflicting stack: %s not managed by dockge-gitops: %w"
+	clearingRepoFolderErr           = "error clearing repo folder: %w"
 
 	envFilePath = "/env/.env"
+
+	dgoFileName = ".dgo"
+	dgoContent  = "Managed by dockge-gitops https://github.com/ebaldebo/dockge-gitops"
 )
