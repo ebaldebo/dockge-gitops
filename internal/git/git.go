@@ -9,6 +9,7 @@ import (
 	"github.com/ebaldebo/dockge-gitops/internal/cmdexecutor"
 	"github.com/ebaldebo/dockge-gitops/internal/env"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 func CloneOrPullRepo(cmdExecutor cmdexecutor.CommandExecutor, repoUrl, pat, dirPath, stackPath string) error {
@@ -77,7 +78,17 @@ func cloneRepo(cmdExecutor cmdexecutor.CommandExecutor, url, dirPath, stackPath 
 
 func pullRepo(cmdExecutor cmdexecutor.CommandExecutor, url, dirPath, stackPath string) error {
 	fmt.Println(repoNotUpToDateMsg)
-	if _, err := cmdExecutor.ExecuteCommand("git", "-C", dirPath, "pull", url); err != nil {
+	r, err := git.PlainOpen(dirPath)
+	if err != nil {
+		return fmt.Errorf(openingRepoErr, err)
+	}
+
+	w, err := r.Worktree()
+	if err != nil {
+		return fmt.Errorf(gettingWorkTreeErr, err)
+	}
+
+	if err := w.Pull(&git.PullOptions{RemoteName: "origin"}); err != nil {
 		return fmt.Errorf(pullingRepoErr, err)
 	}
 	fmt.Println(repoPulledMsg)
@@ -103,22 +114,43 @@ func buildUrl(repoUrl, pat string) (string, error) {
 }
 
 func remoteHasUpdate(cmdExecutor cmdexecutor.CommandExecutor, dirpath string) (bool, error) {
-	_, err := cmdExecutor.ExecuteCommand("git", "-C", dirpath, "fetch")
+	r, err := git.PlainOpen(dirpath)
 	if err != nil {
+		return false, fmt.Errorf(openingRepoErr, err)
+	}
+
+	ref, err := r.Head()
+	if err != nil {
+		return false, fmt.Errorf(getLocalCommitErr, err)
+	}
+
+	currentBranch := ref.Name().Short()
+
+	commit, err := r.CommitObject(ref.Hash())
+	if err != nil {
+		return false, fmt.Errorf(getLocalCommitErr, err)
+	}
+
+	err = r.Fetch(&git.FetchOptions{
+		RemoteName: "origin",
+	})
+	if err != nil && err != git.NoErrAlreadyUpToDate {
 		return false, fmt.Errorf(gitFetchErr, err)
 	}
 
-	localCommitHash, err := cmdExecutor.ExecuteCommand("git", "-C", dirpath, "rev-parse", "HEAD")
+	remoteBranchRef := plumbing.ReferenceName(fmt.Sprintf("refs/remotes/origin/%s", currentBranch))
+
+	remoteRef, err := r.Reference(remoteBranchRef, true)
 	if err != nil {
-		return false, fmt.Errorf(getLocalHashErr, err)
+		return false, fmt.Errorf(getRemoteErr, err)
 	}
 
-	remoteCommitHash, err := cmdExecutor.ExecuteCommand("git", "-C", dirpath, "rev-parse", "origin/main")
+	remoteCommit, err := r.CommitObject(remoteRef.Hash())
 	if err != nil {
-		return false, fmt.Errorf(getRemoteHashErr, err)
+		return false, fmt.Errorf(getLocalCommitErr, err)
 	}
 
-	return string(localCommitHash) != string(remoteCommitHash), nil
+	return commit.Hash != remoteCommit.Hash, nil
 }
 
 func copyFilesToDir(cmdExecutor cmdexecutor.CommandExecutor, dirPath, newDirPath string) error {

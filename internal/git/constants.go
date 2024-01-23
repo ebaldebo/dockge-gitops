@@ -11,8 +11,8 @@ const (
 
 	urlParseErr                     = "error parsing url: %w"
 	gitFetchErr                     = "error fetching repo: %w"
-	getLocalHashErr                 = "error getting local commit hash: %w"
-	getRemoteHashErr                = "error getting remote commit hash: %w"
+	getLocalCommitErr               = "error getting local commit hash: %w"
+	getRemoteErr                    = "error getting remote commit hash: %w"
 	checkingIfRepoHasUpdateErr      = "error checking if repo has update: %w"
 	checkingIfRepoExistsErr         = "error checking if repo exists: %w"
 	cloningRepoErr                  = "error cloning repo: %w"
@@ -29,6 +29,8 @@ const (
 	clearingRepoFolderErr           = "error clearing repo folder: %w"
 	gettingFilesFromRepoDirErr      = "error getting files from repo dir: %w"
 	removingFileErr                 = "error removing file: %s, %w"
+	gettingWorkTreeErr              = "error getting worktree: %w"
+	openingRepoErr                  = "error opening repo: %w"
 
 	envFilePath = "/env/.env"
 

@@ -10,8 +10,6 @@ FROM alpine:3.19
 
 RUN mkdir -p /tmp/repo
 
-RUN apk update && apk add --no-cache git
-
 COPY --from=builder /go/bin/dockge-gitops /app/cmd/
 
 WORKDIR /app/cmd
