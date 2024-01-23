@@ -8,6 +8,7 @@ import (
 
 	"github.com/ebaldebo/dockge-gitops/internal/cmdexecutor"
 	"github.com/ebaldebo/dockge-gitops/internal/env"
+	"github.com/go-git/go-git/v5"
 )
 
 func CloneOrPullRepo(cmdExecutor cmdexecutor.CommandExecutor, repoUrl, pat, dirPath, stackPath string) error {
@@ -60,7 +61,9 @@ func cloneRepo(cmdExecutor cmdexecutor.CommandExecutor, url, dirPath, stackPath 
 	}
 
 	fmt.Println(repoNotExistsCloningMsg)
-	if _, err := cmdExecutor.ExecuteCommand("git", "clone", url, dirPath); err != nil {
+	if _, err := git.PlainClone(dirPath, false, &git.CloneOptions{
+		URL: url,
+	}); err != nil {
 		return fmt.Errorf(cloningRepoErr, err)
 	}
 	fmt.Println(repoClonedMsg)
