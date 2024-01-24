@@ -37,7 +37,7 @@ func CloneOrPullRepo(repoUrl, pat, dirPath, stackPath string) error {
 		return nil
 	}
 
-	return pullRepo(url, dirPath, stackPath)
+	return pullRepo(dirPath, stackPath)
 }
 
 func ClearRepoFolder(dirPath string) error {
@@ -80,25 +80,31 @@ func cloneRepo(repoUrl, targetDirPath, sourceDirPath string) error {
 	return nil
 }
 
-func pullRepo(url, dirPath, stackPath string) error {
+func pullRepo(dirPath, stackPath string) error {
 	fmt.Println(repoNotUpToDateMsg)
-	r, err := git.PlainOpen(dirPath)
+	repo, err := git.PlainOpen(dirPath)
 	if err != nil {
 		return fmt.Errorf(openingRepoErr, err)
 	}
 
-	w, err := r.Worktree()
+	worktree, err := repo.Worktree()
 	if err != nil {
 		return fmt.Errorf(gettingWorkTreeErr, err)
 	}
 
-	if err := w.Pull(&git.PullOptions{RemoteName: "origin"}); err != nil {
+	err = worktree.Pull(&git.PullOptions{RemoteName: "origin"})
+	if err != nil && err != git.NoErrAlreadyUpToDate {
 		return fmt.Errorf(pullingRepoErr, err)
 	}
-	fmt.Println(repoPulledMsg)
+
+	if err == git.NoErrAlreadyUpToDate {
+		fmt.Println(fmt.Println(repoUpToDateMsg))
+	} else {
+		fmt.Println(repoPulledMsg)
+	}
 
 	if err := copyFilesToDir(dirPath, stackPath); err != nil {
-		return err
+		return fmt.Errorf(copyingSubfoldersErr, err)
 	}
 
 	return nil
