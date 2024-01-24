@@ -3,17 +3,16 @@ FROM golang:1.21-alpine as builder
 WORKDIR /go/src/app
 
 COPY . .
+
 RUN go mod download && go mod verify
-RUN go build -v -o /go/bin/dockge-gitops ./cmd/main.go
 
-FROM alpine:3.19
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /go/bin/dockge-gitops ./cmd/main.go
 
-RUN mkdir -p /tmp/repo
+FROM scratch
 
-RUN apk update && apk add --no-cache git
+COPY --from=builder /go/bin/dockge-gitops /app/cmd/dockge-gitops
 
-COPY --from=builder /go/bin/dockge-gitops /app/cmd/
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 WORKDIR /app/cmd
-
 CMD ["/app/cmd/dockge-gitops"]
