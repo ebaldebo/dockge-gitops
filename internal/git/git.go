@@ -15,29 +15,33 @@ import (
 func CloneOrPullRepo(repoUrl, pat, dirPath, stackPath string) error {
 	url, err := buildUrl(repoUrl, pat)
 	if err != nil {
-		return err
+		return fmt.Errorf(buildingUrlErr, err)
 	}
 
-	if _, err := os.Stat(dirPath + "/.git"); os.IsNotExist(err) {
+	gitPath := filepath.Join(dirPath, ".git")
+	if _, err := os.Stat(gitPath); os.IsNotExist(err) {
 		return cloneRepo(url, dirPath, stackPath)
-	} else if err == nil {
-		shouldPull, err := remoteHasUpdate(dirPath)
-		if err != nil {
-			return fmt.Errorf(checkingIfRepoHasUpdateErr, err)
-		}
-		if !shouldPull {
-			fmt.Println(repoUpToDateMsg)
-			return nil
-		}
+	}
 
-		return pullRepo(url, dirPath, stackPath)
-	} else {
+	if err != nil {
 		return fmt.Errorf(checkingIfRepoExistsErr, err)
 	}
+
+	shouldPull, err := remoteHasUpdate(dirPath)
+	if err != nil {
+		return fmt.Errorf(checkingIfRepoHasUpdateErr, err)
+	}
+
+	if !shouldPull {
+		fmt.Println(repoUpToDateMsg)
+		return nil
+	}
+
+	return pullRepo(url, dirPath, stackPath)
 }
 
 func ClearRepoFolder(dirPath string) error {
-	files, err := filepath.Glob(dirPath + "/*")
+	files, err := filepath.Glob(filepath.Join(dirPath, "*"))
 	if err != nil {
 		return fmt.Errorf(gettingFilesFromRepoDirErr, err)
 	}
@@ -51,26 +55,26 @@ func ClearRepoFolder(dirPath string) error {
 	return nil
 }
 
-func cloneRepo(url, dirPath, stackPath string) error {
-	files, err := os.ReadDir(dirPath)
+func cloneRepo(repoUrl, targetDirPath, sourceDirPath string) error {
+	files, err := os.ReadDir(targetDirPath)
 	if err != nil {
 		return fmt.Errorf(readingDirErr, err)
 	}
 
 	if len(files) > 0 {
-		return fmt.Errorf(cloneDirNotEmptyErr, err)
+		return fmt.Errorf(targetDirNotEmptyErr)
 	}
 
 	fmt.Println(repoNotExistsCloningMsg)
-	if _, err := git.PlainClone(dirPath, false, &git.CloneOptions{
-		URL: url,
+	if _, err := git.PlainClone(targetDirPath, false, &git.CloneOptions{
+		URL: repoUrl,
 	}); err != nil {
 		return fmt.Errorf(cloningRepoErr, err)
 	}
 	fmt.Println(repoClonedMsg)
 
-	if err := copyFilesToDir(dirPath, stackPath); err != nil {
-		return err
+	if err := copyFilesToDir(targetDirPath, sourceDirPath); err != nil {
+		return fmt.Errorf(copyingSubfoldersErr, err)
 	}
 
 	return nil

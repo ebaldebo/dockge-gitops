@@ -18,7 +18,7 @@ const (
 	cloningRepoErr                  = "error cloning repo: %w"
 	pullingRepoErr                  = "error pulling repo: %w"
 	readingDirErr                   = "error reading dir: %w"
-	cloneDirNotEmptyErr             = "error cloning into dir, dir is not empty: %w"
+	targetDirNotEmptyErr            = "target directory is not empty"
 	gettingFilesFromDestinationErr  = "error getting files from destination: %w"
 	removingFilesFromDestinationErr = "error removing files from destination: %w"
 	copyingEnvFileErr               = "error copying .env file to desination dir: %w"
@@ -26,11 +26,11 @@ const (
 	gettingSubDirsErr               = "error getting subdirs: %w"
 	writingDgoFileErr               = "error writing .dgo file: %w"
 	conflictingStackErr             = "error conflicting stack: %s not managed by dockge-gitops: %w"
-	clearingRepoFolderErr           = "error clearing repo folder: %w"
 	gettingFilesFromRepoDirErr      = "error getting files from repo dir: %w"
 	removingFileErr                 = "error removing file: %s, %w"
 	gettingWorkTreeErr              = "error getting worktree: %w"
 	openingRepoErr                  = "error opening repo: %w"
+	buildingUrlErr                  = "error building url: %w"
 
 	envFilePath = "/env/.env"
 
