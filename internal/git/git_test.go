@@ -43,7 +43,7 @@ func TestCloneOrPullRepo(t *testing.T) {
 		tempDir, _ := os.MkdirTemp("", "test")
 		defer os.RemoveAll(tempDir)
 
-		err := CloneOrPullRepo(nil, "://example.com", "", tempDir, "")
+		err := CloneOrPullRepo("://example.com", "", tempDir, "")
 
 		assert.Error(t, err)
 	})
@@ -58,7 +58,7 @@ func TestCloneOrPullRepo(t *testing.T) {
 		tempDir, _ := os.MkdirTemp("", "test")
 		defer os.RemoveAll(tempDir)
 
-		err := CloneOrPullRepo(cmdExecutorMock, "https://example.com", "", tempDir, "")
+		err := CloneOrPullRepo("https://example.com", "", tempDir, "")
 
 		assert.NoError(t, err)
 		assert.Equal(t, "clone", cmdExecutorMock.ExecuteCommandCalls()[0].Args[0])
@@ -83,7 +83,7 @@ func TestCloneOrPullRepo(t *testing.T) {
 		os.Mkdir(tempDir+"/.git", 0755)
 		defer os.RemoveAll(tempDir)
 
-		err := CloneOrPullRepo(cmdExecutorMock, "https://example.com", "", tempDir, "")
+		err := CloneOrPullRepo("https://example.com", "", tempDir, "")
 
 		executeCommandCalls := cmdExecutorMock.ExecuteCommandCalls()
 
@@ -110,7 +110,7 @@ func TestCloneOrPullRepo(t *testing.T) {
 		os.Mkdir(tempDir+"/.git", 0755)
 		defer os.RemoveAll(tempDir)
 
-		err := CloneOrPullRepo(cmdExecutorMock, "https://example.com", "", tempDir, "")
+		err := CloneOrPullRepo("https://example.com", "", tempDir, "")
 
 		executeCommandCalls := cmdExecutorMock.ExecuteCommandCalls()
 
@@ -122,16 +122,10 @@ func TestCloneOrPullRepo(t *testing.T) {
 	})
 
 	t.Run("should return error if unable to check repo for updates", func(t *testing.T) {
-		cmdExecutorMock := &cmdexecutor.CommandExecutorMock{
-			ExecuteCommandFunc: func(name string, args ...string) ([]byte, error) {
-				return nil, assert.AnError
-			},
-		}
-
 		tempDir, _ := os.MkdirTemp("", "test")
 		defer os.RemoveAll(tempDir)
 
-		err := CloneOrPullRepo(cmdExecutorMock, "https://example.com", "", tempDir, "")
+		err := CloneOrPullRepo("https://example.com", "", tempDir, "")
 
 		assert.Error(t, err)
 	})

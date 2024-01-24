@@ -27,11 +27,11 @@ func Run(cfg *config.Config) {
 	ticker := time.NewTicker(pollingRateDuration)
 	defer ticker.Stop()
 
-	gitErr := git.CloneOrPullRepo(cmdExecutor, cfg.RepoUrl, cfg.Pat, repoDir, cfg.DockgeStacksDir)
+	gitErr := git.CloneOrPullRepo(cfg.RepoUrl, cfg.Pat, repoDir, cfg.DockgeStacksDir)
 	handleError(cmdExecutor, gitErr)
 
 	for range ticker.C {
-		gitErr := git.CloneOrPullRepo(cmdExecutor, cfg.RepoUrl, cfg.Pat, repoDir, cfg.DockgeStacksDir)
+		gitErr := git.CloneOrPullRepo(cfg.RepoUrl, cfg.Pat, repoDir, cfg.DockgeStacksDir)
 		handleError(cmdExecutor, gitErr)
 	}
 }
@@ -39,7 +39,7 @@ func Run(cfg *config.Config) {
 func handleError(cmedExecutor cmdexecutor.CommandExecutor, err error) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		err := git.ClearRepoFolder(cmedExecutor, repoDir)
+		err := git.ClearRepoFolder(repoDir)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		}

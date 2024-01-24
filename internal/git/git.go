@@ -6,22 +6,22 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ebaldebo/dockge-gitops/internal/cmdexecutor"
 	"github.com/ebaldebo/dockge-gitops/internal/env"
+	"github.com/ebaldebo/dockge-gitops/internal/files"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
-func CloneOrPullRepo(cmdExecutor cmdexecutor.CommandExecutor, repoUrl, pat, dirPath, stackPath string) error {
+func CloneOrPullRepo(repoUrl, pat, dirPath, stackPath string) error {
 	url, err := buildUrl(repoUrl, pat)
 	if err != nil {
 		return err
 	}
 
 	if _, err := os.Stat(dirPath + "/.git"); os.IsNotExist(err) {
-		return cloneRepo(cmdExecutor, url, dirPath, stackPath)
+		return cloneRepo(url, dirPath, stackPath)
 	} else if err == nil {
-		shouldPull, err := remoteHasUpdate(cmdExecutor, dirPath)
+		shouldPull, err := remoteHasUpdate(dirPath)
 		if err != nil {
 			return fmt.Errorf(checkingIfRepoHasUpdateErr, err)
 		}
@@ -30,13 +30,13 @@ func CloneOrPullRepo(cmdExecutor cmdexecutor.CommandExecutor, repoUrl, pat, dirP
 			return nil
 		}
 
-		return pullRepo(cmdExecutor, url, dirPath, stackPath)
+		return pullRepo(url, dirPath, stackPath)
 	} else {
 		return fmt.Errorf(checkingIfRepoExistsErr, err)
 	}
 }
 
-func ClearRepoFolder(cmdExecutor cmdexecutor.CommandExecutor, dirPath string) error {
+func ClearRepoFolder(dirPath string) error {
 	files, err := filepath.Glob(dirPath + "/*")
 	if err != nil {
 		return fmt.Errorf(gettingFilesFromRepoDirErr, err)
@@ -51,7 +51,7 @@ func ClearRepoFolder(cmdExecutor cmdexecutor.CommandExecutor, dirPath string) er
 	return nil
 }
 
-func cloneRepo(cmdExecutor cmdexecutor.CommandExecutor, url, dirPath, stackPath string) error {
+func cloneRepo(url, dirPath, stackPath string) error {
 	files, err := os.ReadDir(dirPath)
 	if err != nil {
 		return fmt.Errorf(readingDirErr, err)
@@ -69,14 +69,14 @@ func cloneRepo(cmdExecutor cmdexecutor.CommandExecutor, url, dirPath, stackPath 
 	}
 	fmt.Println(repoClonedMsg)
 
-	if err := copyFilesToDir(cmdExecutor, dirPath, stackPath); err != nil {
+	if err := copyFilesToDir(dirPath, stackPath); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func pullRepo(cmdExecutor cmdexecutor.CommandExecutor, url, dirPath, stackPath string) error {
+func pullRepo(url, dirPath, stackPath string) error {
 	fmt.Println(repoNotUpToDateMsg)
 	r, err := git.PlainOpen(dirPath)
 	if err != nil {
@@ -93,7 +93,7 @@ func pullRepo(cmdExecutor cmdexecutor.CommandExecutor, url, dirPath, stackPath s
 	}
 	fmt.Println(repoPulledMsg)
 
-	if err := copyFilesToDir(cmdExecutor, dirPath, stackPath); err != nil {
+	if err := copyFilesToDir(dirPath, stackPath); err != nil {
 		return err
 	}
 
@@ -113,7 +113,7 @@ func buildUrl(repoUrl, pat string) (string, error) {
 	return fmt.Sprintf("https://%s@%s%s", pat, parsedUrl.Host, parsedUrl.Path), nil
 }
 
-func remoteHasUpdate(cmdExecutor cmdexecutor.CommandExecutor, dirpath string) (bool, error) {
+func remoteHasUpdate(dirpath string) (bool, error) {
 	r, err := git.PlainOpen(dirpath)
 	if err != nil {
 		return false, fmt.Errorf(openingRepoErr, err)
@@ -153,9 +153,9 @@ func remoteHasUpdate(cmdExecutor cmdexecutor.CommandExecutor, dirpath string) (b
 	return commit.Hash != remoteCommit.Hash, nil
 }
 
-func copyFilesToDir(cmdExecutor cmdexecutor.CommandExecutor, dirPath, newDirPath string) error {
+func copyFilesToDir(dirPath, newDirPath string) error {
 	fmt.Println(copyingFilesMsg)
-	clearDestination(cmdExecutor, newDirPath)
+	clearDestination(newDirPath)
 
 	items, err := os.ReadDir(dirPath)
 	if err != nil {
@@ -177,7 +177,7 @@ func copyFilesToDir(cmdExecutor cmdexecutor.CommandExecutor, dirPath, newDirPath
 			}
 		}
 
-		if _, err := cmdExecutor.ExecuteCommand("cp", "-r", sourcePath, destPath); err != nil {
+		if err := files.CopyDirectory(sourcePath, destPath); err != nil {
 			return fmt.Errorf(copyingSubfoldersErr, err)
 		}
 
@@ -186,7 +186,8 @@ func copyFilesToDir(cmdExecutor cmdexecutor.CommandExecutor, dirPath, newDirPath
 		}
 
 		if env.EnvFileExists(envFilePath) {
-			if _, err := cmdExecutor.ExecuteCommand("cp", envFilePath, destPath+"/"); err != nil {
+			destEnvFilePath := filepath.Join(destPath, filepath.Base(envFilePath))
+			if err := files.CopyFile(envFilePath, destEnvFilePath); err != nil {
 				return fmt.Errorf(copyingEnvFileErr, err)
 			}
 		}
@@ -196,7 +197,7 @@ func copyFilesToDir(cmdExecutor cmdexecutor.CommandExecutor, dirPath, newDirPath
 	return nil
 }
 
-func clearDestination(cmdExecutor cmdexecutor.CommandExecutor, newDirPath string) error {
+func clearDestination(newDirPath string) error {
 	dirs, err := filepath.Glob(newDirPath + "/*")
 	if err != nil {
 		return fmt.Errorf(gettingFilesFromDestinationErr, err)
@@ -205,7 +206,8 @@ func clearDestination(cmdExecutor cmdexecutor.CommandExecutor, newDirPath string
 	for _, dir := range dirs {
 		dgoFilePath := filepath.Join(dir, dgoFileName)
 		if _, err := os.Stat(dgoFilePath); err == nil {
-			if _, err := cmdExecutor.ExecuteCommand("rm", "-rf", dir); err != nil {
+			err := os.RemoveAll(dir)
+			if err != nil {
 				return fmt.Errorf(removingFilesFromDestinationErr, err)
 			}
 		}
