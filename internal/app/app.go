@@ -20,6 +20,10 @@ func Run(cfg *config.Config) {
 	pollingRateDuration, err := polling.ParsePollingRate(cfg.PollingRate)
 	handleError(cmdExecutor, err)
 
+	if err := os.MkdirAll(repoDir, 0755); err != nil {
+		handleError(cmdExecutor, err)
+	}
+
 	ticker := time.NewTicker(pollingRateDuration)
 	defer ticker.Stop()
 

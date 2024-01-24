@@ -8,8 +8,6 @@ RUN go build -v -o /go/bin/dockge-gitops ./cmd/main.go
 
 FROM alpine:3.19
 
-RUN mkdir -p /tmp/repo
-
 COPY --from=builder /go/bin/dockge-gitops /app/cmd/
 
 WORKDIR /app/cmd
